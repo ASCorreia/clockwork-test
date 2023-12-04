@@ -14,9 +14,9 @@ describe("clockwork-test", () => {
   const program = anchor.workspace.ClockworkTest as Program<ClockworkTest>;
 
   const userKeypair = Keypair.generate();
-  const dummyAccountPDA = findProgramAddressSync([anchor.utils.bytes.utf8.encode("Dummyy")], program.programId);
+  const [dummyAccountPDA] = findProgramAddressSync([anchor.utils.bytes.utf8.encode("ClockTest")], program.programId);
 
-  it("Airdrop 2 SOL to our user keypair", async () => {
+  it("Airdrop 1 SOL to our user keypair", async () => {
     const airdropTx = await key.connection.requestAirdrop(userKeypair.publicKey, 1 * LAMPORTS_PER_SOL);
     let latestBlockHash = await key.connection.getLatestBlockhash();
     await key.connection.confirmTransaction({
@@ -27,7 +27,7 @@ describe("clockwork-test", () => {
     console.log("\n\nAirdrop sent to user address! TxID: ", airdropTx);
   });
 
-  it("It increments every 10 seconds", async () => {    
+  it("Increments every 10 seconds", async () => {    
     // 1️⃣ Prepare thread address
     const threadId = "counter";
     const [threadAuthority] = PublicKey.findProgramAddressSync(
@@ -36,11 +36,11 @@ describe("clockwork-test", () => {
         program.programId
     );
     
-    const [threadAddress, threadBump] = clockworkProvider.getThreadPDA(threadAuthority, threadId)
+    const [threadAddress] = clockworkProvider.getThreadPDA(threadAuthority, threadId)
     
     // 2️⃣ Ask our program to initialize a thread via CPI
     // and thus become the admin of that thread
-   await program.methods
+   const tx = await program.methods
     .initialize(Buffer.from(threadId))
     .accounts({
         payer: key.wallet.publicKey,
@@ -48,11 +48,11 @@ describe("clockwork-test", () => {
         clockworkProgram: clockworkProvider.threadProgram.programId,
         thread: threadAddress,
         threadAuthority: threadAuthority,
-        dummyAccount: dummyAccountPDA[0],
+        dummyAccount: dummyAccountPDA,
     })
     .rpc({skipPreflight: true}); 
 
-    console.log("\n\nClockwork thread started!");
+    console.log("\n\nClockwork thread started! TxID: ", tx);
   });
 
   it("Pause thread", async() => {
@@ -64,7 +64,7 @@ describe("clockwork-test", () => {
         program.programId
     );
     
-    const [threadAddress, threadBump] = clockworkProvider.getThreadPDA(threadAuthority, threadId);
+    const [threadAddress] = clockworkProvider.getThreadPDA(threadAuthority, threadId);
 
     // 2️⃣ Ask our program to pause a thread via CPI
    let tx = await program.methods
@@ -74,7 +74,7 @@ describe("clockwork-test", () => {
       clockworkProgram: clockworkProvider.threadProgram.programId,
       thread: threadAddress,
       threadAuthority: threadAuthority,
-      dummyAccount: dummyAccountPDA[0],
+      dummyAccount: dummyAccountPDA,
    })
    .rpc({skipPreflight: true}); 
 
@@ -92,7 +92,7 @@ describe("clockwork-test", () => {
 
     const [threadAddress, threadBump] = clockworkProvider.getThreadPDA(threadAuthority, threadId);
 
-    // 2️⃣ Ask our program to pause a thread via CPI
+    // 2️⃣ Ask our program to delete a thread via CPI
    let tx = await program.methods
    .delete()
    .accounts({
@@ -100,11 +100,21 @@ describe("clockwork-test", () => {
       user: key.wallet.publicKey,
       thread: threadAddress,
       threadAuthority: threadAuthority,
-      dummyAccount: dummyAccountPDA[0],
+      dummyAccount: dummyAccountPDA,
    })
    .rpc({skipPreflight: true}); 
 
    console.log("\n\nClockwork thread deleted! TxID: ", tx);
+  });
 
+  it("Close Dummy Account", async() => {
+    const tx = await program.methods
+    .closeAccount()
+    .accounts({
+      destination: key.wallet.publicKey,
+      dummyAccount: dummyAccountPDA,
+    }).rpc();
+
+    console.log("\n\nDummy account closed! TxID: ", tx);
   });
 })

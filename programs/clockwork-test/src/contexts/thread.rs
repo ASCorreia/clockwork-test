@@ -13,7 +13,7 @@ pub struct Initialize<'info> {
         payer = payer,
         seeds = [SEED_COUNTER],
         bump,
-        space = 8 + std::mem::size_of::<DummyAccount> (),
+        space = 8 + std::mem::size_of::<DummyAccount>(),
     )]
     pub dummy_account: Account<'info, DummyAccount>,
 
@@ -31,11 +31,17 @@ pub struct Initialize<'info> {
     pub system_program: Program<'info, System>,
 
     /// Address to assign to the newly created thread.
-    #[account(mut, address = Thread::pubkey(thread_authority.key(), thread_id))]
+    #[account(
+        mut, 
+        address = Thread::pubkey(thread_authority.key(), thread_id)
+    )]
     pub thread: SystemAccount<'info>,
 
     /// The pda that will own and manage the thread.
-    #[account(seeds = [THREAD_AUTHORITY_SEED], bump)]
+    #[account(
+        seeds = [THREAD_AUTHORITY_SEED], 
+        bump
+    )]
     pub thread_authority: SystemAccount<'info>,
 }
 
@@ -62,7 +68,10 @@ pub struct Pause<'info> {
     pub thread: Account<'info, Thread>,
 
     /// The pda that owns and manages the thread.
-    #[account(seeds = [THREAD_AUTHORITY_SEED], bump)]
+    #[account(
+        seeds = [THREAD_AUTHORITY_SEED], 
+        bump
+    )]
     pub thread_authority: SystemAccount<'info>,
 }
 
@@ -84,7 +93,10 @@ pub struct Delete<'info> {
     pub clockwork_program: Program<'info, clockwork_sdk::ThreadProgram>,
 
     /// The thread to reset.
-    #[account(mut, constraint = thread.authority.eq(&thread_authority.key()))]
+    #[account(
+        mut, 
+        constraint = thread.authority.eq(&thread_authority.key())
+    )]
     pub thread: Account<'info, Thread>,
 
     /// The pda that owns and manages the thread.
@@ -104,8 +116,8 @@ impl<'info> Initialize<'info> {
         let thread_authority = &self.thread_authority;
         let dummy_account = &mut self.dummy_account;
     
-        // 1️⃣ Prepare an instruction to automate. 
-        //    In this case, we will automate the Increment instruction.
+        // Prepare an instruction to automate. 
+        // In this case, we will automate the Increment instruction.
         let target_ix = Instruction {
             program_id: ID,
             accounts: crate::accounts::Increment {
@@ -117,13 +129,13 @@ impl<'info> Initialize<'info> {
             data: crate::instruction::Increment {}.data(),
         };
     
-        // 2️⃣ Define a trigger for the thread.
+        // Define a trigger for the thread.
         let trigger = clockwork_sdk::state::Trigger::Cron {
             schedule: "*/10 * * * * * *".into(),
             skippable: true,
         };
     
-        // 3️⃣ Create a Thread via CPI
+        // Create a Thread via CPI
         clockwork_sdk::cpi::thread_create(
             CpiContext::new_with_signer(
                 clockwork_program.to_account_info(),
@@ -151,7 +163,7 @@ impl<'info> Pause<'info> {
         let thread = &mut self.thread;
         let thread_authority = &mut self.thread_authority;
 
-        // 3️⃣ Pause thread via CPI.
+        // Pause thread via CPI.
         clockwork_sdk::cpi::thread_pause(
             CpiContext::new_with_signer(
                 clockwork_program.to_account_info(),
@@ -187,11 +199,4 @@ impl<'info> Delete<'info> {
                 
         Ok(())
     }
-}
-
-#[account]
-pub struct DummyAccount {
-    pub counter: u32,
-    pub bump: u8,
-    pub thread_bump: u8,
 }

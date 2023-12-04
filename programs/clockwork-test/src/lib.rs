@@ -2,12 +2,14 @@ use anchor_lang::prelude::*;
 
 declare_id!("CtoKnpCU5pDfKiXsAD3mz73BThpZC9fzxCKkBsActXuf");
 
+pub mod state;
 pub mod contexts;
 
+pub use state::*;
 pub use contexts::*;
 
 /// Seed for deriving the `Counter` account PDA.
-pub const SEED_COUNTER: &[u8] = b"Dummyy";
+pub const SEED_COUNTER: &[u8] = b"ClockTest";
 
 /// Seed for thread_authority pda
 /// ⚠️ Make sure it matches whatever you are using on the client-side
@@ -43,6 +45,12 @@ pub mod clockwork_test {
 
     pub fn delete(ctx: Context<Delete>) -> Result<()> {
         ctx.accounts.delete()?;
+        
+        Ok(())
+    }
+
+    pub fn close_account(ctx: Context<CloseAccount>) -> Result<()> {
+        ctx.accounts.close()?;
         
         Ok(())
     }
